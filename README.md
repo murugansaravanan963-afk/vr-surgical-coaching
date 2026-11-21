@@ -95,6 +95,8 @@ vein 0.34, duct 0.18), which is the main thing to improve.
 
 ## Repository layout
 
+For a plain-language explanation of every file, see **[docs/CODE_GUIDE.md](docs/CODE_GUIDE.md)**.
+
 ```
 surgseg/              model, training, evaluation, ONNX export
   datasets/           converters for each public dataset -> one format

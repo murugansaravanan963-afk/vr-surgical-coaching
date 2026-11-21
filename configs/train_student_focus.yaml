@@ -1,5 +1,5 @@
 # Single-stage VR student focused on thin DANGER structures (artery, duct, ureter, vein).
-# No teacher needed: ~1 day on the class account (60k steps, 2 self-requeuing 4 h chunks).
+# No teacher needed: ~1 day on 4 A100 GPUs (60k steps).
 # Run surgseg.tools.refine_index first (better val split + rare-class frame detection).
 # Changes vs the quick run: higher resolution, longer, danger classes weighted 3x in the
 # loss, rare-class frames drawn 5x more often, more weight on Endoscapes.

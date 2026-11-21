@@ -1,6 +1,6 @@
 # Stage 1 - TEACHER: LemonFM (ConvNeXt-L pretrained on 938 h of surgery) + UPerNet,
 # on every labeled dataset. run_pipeline.sh trains NUM_TEACHERS of these (seeds) for an
-# ensemble, as self-requeuing 4 GPU x 4 h jobs.
+# ensemble (one run per seed).
 out_dir: ${SURGSEG_RUNS}/teacher_lemonfm_s0
 seed: 0
 iters: 60000            # strong pretrained backbone: ~2 x 4 h chunks

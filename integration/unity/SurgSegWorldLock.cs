@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// World-locked target/danger overlay. The model needs ~1 s per frame, but the view (head /
+/// World-locked target/danger overlay. A model result arrives tens of ms to ~1 s after its frame, but the view (head /
 /// camera) moves every frame. When a frame is sent to the model we also store its depth and
 /// camera pose; when the result comes back, every rendered frame re-projects each visible
 /// surface point into that stored view and takes its role colour from there. The highlight

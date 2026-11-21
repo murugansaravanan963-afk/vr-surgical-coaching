@@ -1,5 +1,5 @@
 // Records (camera frame, label mask) pairs from the endoscope camera, for fine-tuning
-// surgseg on YOUR simulator's look. TEMPLATE: not compiled in this repo.
+// surgseg on YOUR simulator's look.
 //
 // Setup:
 //   1. Put SurgSegLabel on tissue/tool objects (liver, gallbladder, artery, duct, tools...).
