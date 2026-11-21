@@ -1,0 +1,50 @@
+# Stage 1 - TEACHER: LemonFM (ConvNeXt-L pretrained on 938 h of surgery) + UPerNet,
+# on every labeled dataset. run_pipeline.sh trains NUM_TEACHERS of these (seeds) for an
+# ensemble, as self-requeuing 4 GPU x 4 h jobs.
+out_dir: ${SURGSEG_RUNS}/teacher_lemonfm_s0
+seed: 0
+iters: 60000            # strong pretrained backbone: ~2 x 4 h chunks
+val_every: 4000
+log_every: 50
+amp: bf16
+ema_decay: 0.9998
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:               # dataset -> share of each batch
+    dsad: 1.5             # da Vinci rectal resection: 11 structures incl. ureter
+    sisvse: 1.0           # robotic gastrectomy, real + synthetic
+    endovis18: 1.0        # da Vinci nephrectomy scene
+    cholecseg8k: 1.0      # cholecystectomy
+    endoscapes: 0.7       # cholecystectomy: cystic artery + duct (danger structures)
+    sarrarp50: 1.0        # da Vinci suturing: tools, needle, thread
+    m2caiseg: 0.3
+    endovis17: 0.3
+  synthetic_weight: 0.5
+  boost:                  # oversample frames showing rare, safety-critical structures
+    classes: [artery, vein, duct, ureter, vesicular_glands]
+    factor: 2.0           # gentle: 5x over-fitted the few Endoscapes frames
+  crop: [768, 768]
+  batch_size: 4           # per GPU
+  workers: 6
+  eval_long_side: 768
+  eval_batch_size: 4
+
+model:
+  preset: lemonfm-upernet
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+  class_weights: {artery: 1.5, vein: 1.5, duct: 1.5, ureter: 1.5}
+
+select:                   # keep the checkpoint that is best on the DANGER structures too
+  classes: [artery, vein, duct, ureter]
+  weight: 0.5
+
+optim:
+  lr: 1.0e-4
+  weight_decay: 0.05
+  warmup_iters: 3000
+  encoder_lr_mult: 0.1    # fine-tune the foundation backbone gently
+  clip_grad: 1.0

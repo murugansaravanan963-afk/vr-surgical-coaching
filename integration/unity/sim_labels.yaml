@@ -1,0 +1,24 @@
+# Unity SurgSegCapture masks store the unified class id directly, so the map is 1:1.
+# Used by: python -m surgseg.datasets.prepare_custom --label-map integration/unity/sim_labels.yaml
+0: background
+1: instrument
+2: liver
+3: gallbladder
+4: stomach
+5: small_intestine
+6: colon
+7: pancreas
+8: spleen
+9: kidney
+10: ureter
+11: vesicular_glands
+12: artery
+13: vein
+14: duct
+15: fat
+16: connective_tissue
+17: abdominal_wall
+18: blood
+19: suture
+20: surgical_object
+21: uterus

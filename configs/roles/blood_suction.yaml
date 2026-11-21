@@ -1,0 +1,6 @@
+name: blood_suction
+description: CRESSim-style suction/irrigation task. Blood is the target; vessels are protected.
+target: [blood]
+danger: [artery, vein, duct, ureter]
+danger_threshold: 0.3
+target_threshold: 0.5

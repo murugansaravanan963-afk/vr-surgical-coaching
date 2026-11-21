@@ -1,0 +1,39 @@
+# BASELINE (ImageNet SegFormer, original 5 datasets) - for comparison with the surgical-backbone pipeline.
+# Stage 1: large, accurate teacher. Too slow for the VR loop; used to distil the student.
+# 4x A100-80GB: ~1-1.5 days.
+out_dir: ${SURGSEG_RUNS}/baseline_segformer_b5
+seed: 0
+iters: 160000
+val_every: 4000
+log_every: 50
+amp: bf16
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:               # dataset -> share of each batch (normalised automatically)
+    sisvse: 1.0           # robotic gastrectomy, real + synthetic
+    endovis18: 1.0        # da Vinci nephrectomy, full scene
+    dsad: 1.5             # da Vinci rectal resection, 11 structures - most anatomy
+    cholecseg8k: 1.0      # laparoscopic cholecystectomy
+    endovis17: 0.3        # instruments only
+  synthetic_weight: 0.5   # relative weight of synthetic frames within a dataset
+  crop: [640, 640]
+  batch_size: 8           # per GPU
+  workers: 12
+  eval_long_side: 768
+  eval_batch_size: 4
+
+model:
+  preset: segformer-b5
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+
+optim:
+  lr: 6.0e-5
+  min_lr: 0.0
+  weight_decay: 0.01
+  warmup_iters: 2000
+  encoder_lr_mult: 1.0
+  clip_grad: 1.0

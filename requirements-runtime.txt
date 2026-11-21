@@ -1,0 +1,7 @@
+# VR-side runtime only (no PyTorch). Use onnxruntime-gpu (CUDA/TensorRT) or
+# onnxruntime-directml on Windows for GPU inference.
+onnxruntime>=1.19
+opencv-python-headless>=4.9
+numpy>=1.26
+pyyaml>=6.0
+pyzmq>=25

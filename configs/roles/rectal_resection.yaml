@@ -1,0 +1,10 @@
+name: rectal_resection
+description: Robotic rectal resection / TME (DSAD-like scenes). Ureter and seminal vesicles are key no-go structures.
+target: [colon]
+danger: [ureter, vesicular_glands, small_intestine, vein]
+danger_threshold: 0.3
+target_threshold: 0.5
+steps:
+  ima_ligation:                # the inferior mesenteric artery is deliberately ligated here
+    target: [artery]
+    danger: [ureter, vein, small_intestine]

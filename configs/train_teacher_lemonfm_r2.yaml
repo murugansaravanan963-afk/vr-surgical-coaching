@@ -1,0 +1,47 @@
+# Stage 3 - ROUND-2 TEACHER ("noisy student"): same model, retrained on ground truth
+# COMPLETED by the round-1 ensemble plus pseudo-labelled unlabeled video
+# (see surgseg/pseudo_label.py and scripts/linux/label_stage.sh).
+out_dir: ${SURGSEG_RUNS}/teacher_lemonfm_r2
+seed: 10
+iters: 160000
+val_every: 4000
+log_every: 50
+amp: bf16
+ema_decay: 0.9998
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    dsad_pl: 1.5
+    sisvse_pl: 1.0
+    endovis18_pl: 1.0
+    cholecseg8k_pl: 1.0
+    endoscapes_pl: 0.7
+    sarrarp50_pl: 1.0
+    m2caiseg: 0.3
+    endovis17_pl: 0.3
+    endoscapes_unl_pl: 0.7
+    sarrarp50_unl_pl: 0.7
+  synthetic_weight: 0.5
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands]
+    factor: 3.0
+  crop: [768, 768]
+  batch_size: 4
+  workers: 6
+  eval_long_side: 768
+  eval_batch_size: 4
+
+model:
+  preset: lemonfm-upernet
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+
+optim:
+  lr: 1.0e-4
+  weight_decay: 0.05
+  warmup_iters: 3000
+  encoder_lr_mult: 0.1
+  clip_grad: 1.0

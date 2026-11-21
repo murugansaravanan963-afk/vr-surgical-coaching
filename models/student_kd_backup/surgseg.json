@@ -1,0 +1,227 @@
+{
+ "format": "surgseg-onnx-v1",
+ "input": {
+  "name": "image",
+  "layout": "NCHW",
+  "dtype": "float32",
+  "range": [
+   0,
+   1
+  ],
+  "channels": "RGB",
+  "multiple_of": 32,
+  "recommended_hw": [
+   640,
+   800
+  ],
+  "dynamic": true
+ },
+ "outputs": [
+  "probs",
+  "labels",
+  "confidence"
+ ],
+ "classes": [
+  {
+   "id": 0,
+   "name": "background",
+   "color": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 1,
+   "name": "instrument",
+   "color": [
+    200,
+    200,
+    200
+   ]
+  },
+  {
+   "id": 2,
+   "name": "liver",
+   "color": [
+    150,
+    40,
+    40
+   ]
+  },
+  {
+   "id": 3,
+   "name": "gallbladder",
+   "color": [
+    60,
+    160,
+    60
+   ]
+  },
+  {
+   "id": 4,
+   "name": "stomach",
+   "color": [
+    230,
+    150,
+    100
+   ]
+  },
+  {
+   "id": 5,
+   "name": "small_intestine",
+   "color": [
+    240,
+    200,
+    80
+   ]
+  },
+  {
+   "id": 6,
+   "name": "colon",
+   "color": [
+    180,
+    120,
+    60
+   ]
+  },
+  {
+   "id": 7,
+   "name": "pancreas",
+   "color": [
+    250,
+    220,
+    160
+   ]
+  },
+  {
+   "id": 8,
+   "name": "spleen",
+   "color": [
+    120,
+    40,
+    120
+   ]
+  },
+  {
+   "id": 9,
+   "name": "kidney",
+   "color": [
+    170,
+    70,
+    100
+   ]
+  },
+  {
+   "id": 10,
+   "name": "ureter",
+   "color": [
+    255,
+    255,
+    0
+   ]
+  },
+  {
+   "id": 11,
+   "name": "vesicular_glands",
+   "color": [
+    255,
+    140,
+    200
+   ]
+  },
+  {
+   "id": 12,
+   "name": "artery",
+   "color": [
+    255,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 13,
+   "name": "vein",
+   "color": [
+    0,
+    80,
+    255
+   ]
+  },
+  {
+   "id": 14,
+   "name": "duct",
+   "color": [
+    0,
+    220,
+    200
+   ]
+  },
+  {
+   "id": 15,
+   "name": "fat",
+   "color": [
+    255,
+    230,
+    120
+   ]
+  },
+  {
+   "id": 16,
+   "name": "connective_tissue",
+   "color": [
+    210,
+    180,
+    220
+   ]
+  },
+  {
+   "id": 17,
+   "name": "abdominal_wall",
+   "color": [
+    140,
+    140,
+    100
+   ]
+  },
+  {
+   "id": 18,
+   "name": "blood",
+   "color": [
+    120,
+    0,
+    0
+   ]
+  },
+  {
+   "id": 19,
+   "name": "suture",
+   "color": [
+    0,
+    255,
+    0
+   ]
+  },
+  {
+   "id": 20,
+   "name": "surgical_object",
+   "color": [
+    80,
+    160,
+    255
+   ]
+  },
+  {
+   "id": 21,
+   "name": "uterus",
+   "color": [
+    255,
+    120,
+    160
+   ]
+  }
+ ],
+ "temperature": 1.3422596454620361,
+ "train_step": 28000,
+ "model_preset": "surgenetxl-fpn"
+}

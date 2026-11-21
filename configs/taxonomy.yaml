@@ -1,0 +1,158 @@
+# Unified surgical-scene taxonomy.
+#
+# Every source dataset labels a DIFFERENT subset of anatomy. We map all of them into
+# this one class list and train with a partial-label ("marginal") loss, so a pixel
+# that dataset X calls "background" is only treated as "none of the classes X labels",
+# never as "definitely background".
+#
+# Processed mask encoding (see surgseg/datasets/common.py):
+#   0        -> dataset background = "none of this sample's labeled classes"
+#   1..N-1   -> unified class id
+#   100-149  -> group id (pixel is ONE of several unified classes, e.g. "GI tract")
+#   150-199  -> "partial:<class>" = 150 + class id: the pixel IS that class, but the dataset
+#               does not label the class everywhere, so its background is not a negative
+#               (e.g. Endoscapes labels the cystic plate, not all connective tissue)
+#   255      -> ignore
+
+classes:            # id: [name, RGB colour for visualisation]
+  0:  [background,        [0, 0, 0]]
+  1:  [instrument,        [200, 200, 200]]
+  2:  [liver,             [150, 40, 40]]
+  3:  [gallbladder,       [60, 160, 60]]
+  4:  [stomach,           [230, 150, 100]]
+  5:  [small_intestine,   [240, 200, 80]]
+  6:  [colon,             [180, 120, 60]]
+  7:  [pancreas,          [250, 220, 160]]
+  8:  [spleen,            [120, 40, 120]]
+  9:  [kidney,            [170, 70, 100]]
+  10: [ureter,            [255, 255, 0]]
+  11: [vesicular_glands,  [255, 140, 200]]
+  12: [artery,            [255, 0, 0]]
+  13: [vein,              [0, 80, 255]]
+  14: [duct,              [0, 220, 200]]
+  15: [fat,               [255, 230, 120]]
+  16: [connective_tissue, [210, 180, 220]]
+  17: [abdominal_wall,    [140, 140, 100]]
+  18: [blood,             [120, 0, 0]]
+  19: [suture,            [0, 255, 0]]
+  20: [surgical_object,   [80, 160, 255]]
+  21: [uterus,            [255, 120, 160]]
+
+groups:             # id: [name, member class names]
+  100: [gi_tract,       [stomach, small_intestine, colon]]
+  101: [kidney_or_fat,  [kidney, fat]]
+  102: [intestine,      [small_intestine, colon]]
+  103: [fat_or_connective, [fat, connective_tissue]]
+
+# Per-dataset label mappings: source label name -> unified class / group name.
+# "background" means value 0 (= none of this dataset's labeled classes).
+# "ignore" means 255.
+# A dataset's *labeled set* = all unified CLASSES appearing on the right-hand side
+# (groups do not add to it). Converters fail loudly on any source label not listed.
+datasets:
+  sisvse:
+    the_other_tissues: background
+    liver: liver
+    stomach: stomach
+    pancreas: pancreas
+    gallbladder: gallbladder
+    spleen: spleen
+    gauze: surgical_object
+    drain_tube: surgical_object
+    specimenbag: surgical_object
+    needle: suture
+    the_other_instruments: instrument
+    endotip: instrument
+    suction_irrigation: instrument
+    # every *_head / *_wrist / *_body instrument part -> instrument (matched by suffix
+    # in prepare_sisvse.py, so the misspelt "marylan_bipolar_forceps_head" also works)
+    __instrument_part_suffixes__: [_head, _wrist, _body]
+
+  endovis18:
+    background-tissue: background
+    instrument-shaft: instrument
+    instrument-clasper: instrument
+    instrument-wrist: instrument
+    kidney-parenchyma: kidney
+    covered-kidney: kidney_or_fat      # kidney fascia + perinephric fat
+    thread: suture
+    suturing-needle: suture
+    clamps: surgical_object
+    suction-instrument: instrument
+    intestine: small_intestine
+    ultrasound-probe: instrument
+
+  endovis17:                           # instrument-only dataset
+    background: background
+    instrument: instrument
+
+  cholecseg8k:
+    black_background: background
+    abdominal_wall: abdominal_wall
+    liver: liver
+    gastrointestinal_tract: gi_tract
+    fat: fat
+    grasper: instrument
+    connective_tissue: connective_tissue
+    blood: blood
+    cystic_duct: duct
+    l_hook_electrocautery: instrument
+    gallbladder: gallbladder
+    hepatic_vein: vein
+    liver_ligament: connective_tissue
+
+  dsad:
+    abdominal_wall: abdominal_wall
+    colon: colon
+    inferior_mesenteric_artery: artery
+    intestinal_veins: vein
+    liver: liver
+    pancreas: pancreas
+    small_intestine: small_intestine
+    spleen: spleen
+    stomach: stomach
+    ureter: ureter
+    vesicular_glands: vesicular_glands
+
+  # ---- additional sources (see README "Extra data") ----
+  endoscapes:                          # cholecystectomy, CVS region; ids = line order of seg_label_map.txt
+    background: background
+    cystic_plate: partial:connective_tissue
+    calot_triangle: fat_or_connective  # hepatocystic triangle dissection area
+    cystic_artery: artery
+    cystic_duct: duct
+    gallbladder: gallbladder
+    tool: instrument
+
+  sarrarp50:                           # da Vinci Si prostatectomy (suturing); values per its README
+    background: background
+    tool_clasper: instrument
+    tool_wrist: instrument
+    tool_shaft: instrument
+    suturing_needle: suture
+    thread: suture
+    suction_tool: instrument
+    needle_holder: instrument
+    clamps: surgical_object
+    catheter: surgical_object
+
+  m2caiseg:                            # laparoscopic cholecystectomy, 19 classes
+    background: background
+    grasper: instrument
+    bipolar: instrument
+    hook: instrument
+    scissors: instrument
+    clipper: instrument
+    irrigator: instrument
+    specimen-bag: surgical_object
+    trocars: instrument
+    clip: surgical_object
+    liver: liver
+    gall-bladder: gallbladder
+    fat: fat
+    upperwall: abdominal_wall
+    artery: artery
+    intestine: intestine
+    bile: ignore                       # spilled bile, not a structure
+    blood: blood
+    unknown: ignore

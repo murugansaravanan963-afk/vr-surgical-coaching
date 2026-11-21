@@ -1,0 +1,6 @@
+name: gastrectomy
+description: Robotic gastrectomy (SISVSE-like scenes). Pancreas and spleen injuries are the main risks.
+target: [stomach]
+danger: [pancreas, spleen, artery, vein, liver]
+danger_threshold: 0.3
+target_threshold: 0.5

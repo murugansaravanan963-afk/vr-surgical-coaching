@@ -1,0 +1,48 @@
+# Single-stage VR student focused on thin DANGER structures (artery, duct, ureter, vein).
+# No teacher needed: ~1 day on the class account (60k steps, 2 self-requeuing 4 h chunks).
+# Run surgseg.tools.refine_index first (better val split + rare-class frame detection).
+# Changes vs the quick run: higher resolution, longer, danger classes weighted 3x in the
+# loss, rare-class frames drawn 5x more often, more weight on Endoscapes.
+out_dir: ${SURGSEG_RUNS}/student_focus
+seed: 30
+iters: 60000
+val_every: 4000
+log_every: 50
+amp: bf16
+ema_decay: 0.9998
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    dsad: 1.5             # ureter, vessels, vesicular glands
+    sisvse: 1.0
+    cholecseg8k: 1.2      # duct, hepatic vein, connective tissue, blood
+    endoscapes: 1.5       # cystic artery + duct: the main danger-structure source
+    sarrarp50: 0.8
+    m2caiseg: 0.4
+    endovis18: 1.0        # used automatically if you ever add it
+  synthetic_weight: 0.5
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands, connective_tissue]
+    factor: 5.0
+  crop: [640, 640]
+  batch_size: 12          # per GPU
+  workers: 6
+  eval_long_side: 800
+  eval_batch_size: 4
+
+model:
+  preset: surgenetxl-fpn
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+  class_weights: {artery: 3.0, vein: 3.0, duct: 3.0, ureter: 3.0, vesicular_glands: 2.0,
+                  connective_tissue: 1.5}
+
+optim:
+  lr: 2.0e-4
+  weight_decay: 0.05
+  warmup_iters: 2000
+  encoder_lr_mult: 0.2
+  clip_grad: 1.0

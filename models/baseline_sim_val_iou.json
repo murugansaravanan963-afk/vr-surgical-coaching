@@ -1,0 +1,11 @@
+{
+ "background": 0.0,
+ "instrument": 0.332,
+ "liver": 0.304,
+ "gallbladder": 0.183,
+ "stomach": 0.053,
+ "small_intestine": 0.077,
+ "artery": 0.0,
+ "duct": 0.0,
+ "fat": 0.141
+}

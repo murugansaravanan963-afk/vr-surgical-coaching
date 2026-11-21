@@ -1,0 +1,51 @@
+# Stage 4 - REAL-TIME STUDENT: SurgeNetXL (CaFormer-S18, surgical pretraining) + FPN,
+# distilled from the teacher ensemble on labeled AND unlabeled surgical frames.
+out_dir: ${SURGSEG_RUNS}/student_surgenetxl
+seed: 20
+iters: 160000
+val_every: 4000
+log_every: 50
+amp: bf16
+ema_decay: 0.9998
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    dsad_pl: 1.5
+    sisvse_pl: 1.0
+    endovis18_pl: 1.0
+    cholecseg8k_pl: 1.0
+    endoscapes_pl: 0.7
+    sarrarp50_pl: 1.0
+    m2caiseg: 0.3
+    endovis17_pl: 0.3
+    endoscapes_unl: 1.0     # unlabeled: learned purely from the teachers
+    sarrarp50_unl: 1.0
+  synthetic_weight: 0.5
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands]
+    factor: 3.0
+  crop: [512, 512]
+  batch_size: 16
+  workers: 6
+  eval_long_side: 640
+  eval_batch_size: 8
+
+model:
+  preset: surgenetxl-fpn
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+
+distill:                    # a list = ensemble (better, but each extra ConvNeXt-L teacher
+  teacher_ckpt: ${SURGSEG_RUNS}/teacher_lemonfm_r2/best.pt   # roughly doubles step cost)
+  weight: 1.0
+  T: 2.0
+
+optim:
+  lr: 2.0e-4
+  weight_decay: 0.05
+  warmup_iters: 2000
+  encoder_lr_mult: 0.2
+  clip_grad: 1.0

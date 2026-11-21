@@ -1,0 +1,6 @@
+name: nephrectomy
+description: Kidney procedures (EndoVis18-like scenes). Hilar vessels, ureter and bowel are protected.
+target: [kidney]
+danger: [artery, vein, ureter, small_intestine, colon, spleen]
+danger_threshold: 0.3
+target_threshold: 0.5

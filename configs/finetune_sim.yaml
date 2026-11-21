@@ -1,0 +1,48 @@
+# Adapt the VR model to YOUR simulator's rendering (Unity frames from SurgSegCapture).
+#   1. prepare_custom --name sim --label-map integration/unity/sim_labels.yaml ...
+#   2. bash scripts/linux/train.sh configs/finetune_sim.yaml  (or: bash scripts/linux/finetune_sim.sh <zip>)
+# Mixes sim frames with real data so the model does not forget real anatomy, and starts
+# from the focused student. ~1-2 h on 4 A100s.
+out_dir: ${SURGSEG_RUNS}/student_sim
+seed: 40
+iters: 15000
+val_every: 1500
+log_every: 50
+amp: bf16
+ema_decay: 0.999
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    sim: 3.0              # your Unity frames
+    sisvse: 1.0           # includes synthetic/simulator-style frames
+    dsad: 1.0
+    cholecseg8k: 0.8
+    endoscapes: 1.0
+    sarrarp50: 0.6
+  synthetic_weight: 1.0
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands, connective_tissue]
+    factor: 5.0
+  crop: [640, 640]
+  batch_size: 12
+  workers: 6
+  eval_long_side: 800
+  eval_batch_size: 4
+
+model:
+  preset: surgenetxl-fpn
+  pretrained: false
+  init_ckpt: ${SURGSEG_RUNS}/student_kd/best.pt
+
+loss:
+  dice_weight: 0.5
+  class_weights: {artery: 3.0, vein: 3.0, duct: 3.0, ureter: 3.0, vesicular_glands: 2.0,
+                  connective_tissue: 1.5}
+
+optim:
+  lr: 5.0e-5
+  weight_decay: 0.05
+  warmup_iters: 500
+  encoder_lr_mult: 0.5
+  clip_grad: 1.0

@@ -1,0 +1,57 @@
+# Real-time VR student DISTILLED from the LemonFM teacher, on labeled + unlabeled frames.
+# The teacher learns thin structures far better (0.54 on Endoscapes after 2.4k steps vs
+# 0.28 for the small model at 3k); distillation passes that on while staying fast in VR.
+# Needs: ${SURGSEG_RUNS}/teacher_lemonfm_s0/best.pt (train_teacher_lemonfm.yaml)
+out_dir: ${SURGSEG_RUNS}/student_kd
+seed: 50
+iters: 40000
+val_every: 4000
+log_every: 50
+amp: bf16
+ema_decay: 0.9998
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    dsad: 1.5
+    sisvse: 1.0
+    cholecseg8k: 1.0
+    endoscapes: 1.0
+    sarrarp50: 0.8
+    m2caiseg: 0.3
+    endovis18: 1.0          # used automatically if you ever add it
+    endoscapes_unl: 0.7     # unlabeled: learned from the teacher only
+    sarrarp50_unl: 0.5
+  synthetic_weight: 0.5
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands]
+    factor: 2.0
+  crop: [640, 640]
+  batch_size: 12
+  workers: 6
+  eval_long_side: 800
+  eval_batch_size: 4
+
+model:
+  preset: surgenetxl-fpn
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+  class_weights: {artery: 1.5, vein: 1.5, duct: 1.5, ureter: 1.5}
+
+distill:
+  teacher_ckpt: ${SURGSEG_RUNS}/teacher_lemonfm_s0/best.pt
+  weight: 1.0
+  T: 2.0
+
+select:
+  classes: [artery, vein, duct, ureter]
+  weight: 0.5
+
+optim:
+  lr: 2.0e-4
+  weight_decay: 0.05
+  warmup_iters: 2000
+  encoder_lr_mult: 0.2
+  clip_grad: 1.0

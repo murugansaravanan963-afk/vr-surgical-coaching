@@ -1,0 +1,43 @@
+# BASELINE (ImageNet SegFormer, original 5 datasets) - for comparison with the surgical-backbone pipeline.
+# Stage 2: real-time student for the VR loop, distilled from the teacher.
+# Set distill.teacher_ckpt to null to train it on labels alone (e.g. before the teacher exists).
+out_dir: ${SURGSEG_RUNS}/baseline_segformer_b2
+seed: 1
+iters: 160000
+val_every: 4000
+log_every: 50
+amp: bf16
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    sisvse: 1.0
+    endovis18: 1.0
+    dsad: 1.5
+    cholecseg8k: 1.0
+    endovis17: 0.3
+  synthetic_weight: 0.5
+  crop: [512, 512]
+  batch_size: 16
+  workers: 12
+  eval_long_side: 640
+  eval_batch_size: 8
+
+model:
+  preset: segformer-b2      # segformer-b0 if the headset PC is weak
+  pretrained: true
+
+loss:
+  dice_weight: 0.5
+
+distill:
+  teacher_ckpt: null
+  weight: 1.0
+  T: 2.0
+
+optim:
+  lr: 6.0e-5
+  weight_decay: 0.01
+  warmup_iters: 1500
+  encoder_lr_mult: 1.0
+  clip_grad: 1.0

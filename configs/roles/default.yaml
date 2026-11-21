@@ -1,0 +1,8 @@
+# Fallback for any scene/task without a specific profile: no fixed target (the
+# simulator task or the user supplies it), every critical tubular structure is danger.
+name: default
+description: Critical structures are always protected; target comes from the task or user.
+target: []
+danger: [artery, vein, duct, ureter]
+danger_threshold: 0.3
+target_threshold: 0.5

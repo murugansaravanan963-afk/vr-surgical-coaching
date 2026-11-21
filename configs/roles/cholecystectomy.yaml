@@ -1,0 +1,13 @@
+name: cholecystectomy
+description: Gallbladder removal. Bile ducts and vessels in Calot's triangle are the classic injury sites.
+target: [gallbladder]
+danger: [duct, artery, vein]
+danger_threshold: 0.3
+target_threshold: 0.5
+steps:
+  calot_dissection:            # clear tissue in Calot's triangle; ducts/vessels must not be hit
+    target: [connective_tissue, fat]
+    danger: [duct, artery, vein, liver]
+  gallbladder_detachment:      # peel gallbladder from the liver bed
+    target: [gallbladder]
+    danger: [liver, duct, artery, vein, small_intestine, colon]
