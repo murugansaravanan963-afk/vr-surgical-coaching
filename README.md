@@ -240,3 +240,22 @@ Verified locally:
   fail loudly if they differ.
 
 This is a training aid, not a medical device.
+
+## Team
+
+- Saravanan Murugan
+- Mitrang Gupta
+- Tirth Rank
+
+## License
+
+- **Code:** [MIT License](LICENSE).
+- **Trained model** (`surgseg.onnx` in the release): for **non-commercial research and
+  education only**. It was trained on datasets with non-commercial licences (CholecSeg8k,
+  Endoscapes2023, SAR-RARP50 and m2caiSeg are CC BY-NC-SA) and on SurgeNetXL weights, and it
+  inherits their terms. See [Data sources](#2-data-sources).
+- **Anatomy meshes** in [integration/unity/Anatomy/](integration/unity/Anatomy/): BodyParts3D,
+  © The Database Center for Life Science, CC BY-SA 2.1 Japan
+  ([details](integration/unity/Anatomy/LICENSE_BodyParts3D.txt)).
+- **Third-party DLLs** in [integration/unity/Plugins/](integration/unity/Plugins/) (NetMQ,
+  AsyncIO) keep their own licences.
