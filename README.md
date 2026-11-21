@@ -22,36 +22,33 @@ The system has two parts: an **offline** part that trains the model once, and a 
 that runs every frame while the trainee operates.
 
 ```mermaid
-flowchart LR
-    subgraph OFF["Offline: train the model (once)"]
-        direction TB
+flowchart TB
+    subgraph OFF["① Offline: train the model once"]
+        direction LR
         D["6 public surgical datasets<br/>DSAD, SISVSE, CholecSeg8k,<br/>Endoscapes, SAR-RARP50, m2caiSeg"]
-        U["Unlabeled surgical video"]
-        S["Simulator frames with exact masks<br/>(domain-randomized Unity scene)"]
         TX["One 22-class taxonomy<br/>+ partial-label loss"]
-        T["Teacher: LemonFM ConvNeXt-L + UPerNet<br/>~230M params, accurate"]
-        ST["Student: SurgeNetXL CaFormer-S18 + FPN<br/>~28M params, real-time"]
-        X["Calibrate + export<br/>surgseg.onnx + surgseg.json"]
-        D --> TX --> T
-        T -->|knowledge distillation| ST
+        T["Teacher<br/>LemonFM ConvNeXt-L + UPerNet<br/>~230M params"]
+        ST["Student<br/>SurgeNetXL CaFormer-S18 + FPN<br/>~28M params, real-time"]
+        X["Calibrate + export<br/>surgseg.onnx"]
+        U["Unlabeled surgical video"]
+        S["Simulator frames with exact masks<br/>domain-randomized Unity scene"]
+        D --> TX --> T -->|distillation| ST --> X
         U --> ST
-        TX --> ST
         S -->|fine-tune| ST
-        ST --> X
     end
 
-    subgraph LIVE["Live loop: every frame"]
-        direction TB
-        VR["VR trainer (Unity)<br/>endoscope camera, da Vinci PSM tools,<br/>anatomy, Quest 3 or desktop"]
-        SEG["SegEngine<br/>ONNX model: 22-class probabilities"]
-        ROLE["RoleAssigner<br/>target / danger / neutral / instrument<br/>Mode 1 manual, Mode 2 procedure profile"]
-        SAFE["SafetyMonitor<br/>tool-tip to danger distance,<br/>hysteresis, stale-frame check"]
-        OUT["Feedback in VR<br/>world-locked overlay, HUD alert levels,<br/>labels, session logs"]
-        VR -->|frame + tool-tip positions + depth| SEG --> ROLE --> SAFE --> OUT
-        OUT -->|next frame| VR
+    subgraph LIVE["② Live loop: runs every frame in the VR trainer"]
+        direction LR
+        VR["VR trainer, Unity<br/>endoscope camera,<br/>da Vinci PSM tools, anatomy"]
+        SEG["SegEngine<br/>ONNX model<br/>22-class probabilities"]
+        ROLE["RoleAssigner<br/>target / danger / neutral<br/>manual or procedure profile"]
+        SAFE["SafetyMonitor<br/>tool tip to danger distance<br/>OK / WARNING / VIOLATION"]
+        OUT["Feedback in VR<br/>world-locked overlay,<br/>HUD alerts, session logs"]
+        VR -->|frame + tool tips + depth| SEG --> ROLE --> SAFE --> OUT
+        OUT -.->|next frame| VR
     end
 
-    X -->|deploy model| SEG
+    OFF ==>|deploy surgseg.onnx| LIVE
 ```
 
 The live loop can run two ways: the Unity scene sends frames over **ZeroMQ** to the Python
