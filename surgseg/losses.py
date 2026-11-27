@@ -16,11 +16,16 @@ from surgseg.taxonomy import IGNORE, PARTIAL_BASE, Taxonomy
 
 class PartialLabelLoss(torch.nn.Module):
     def __init__(self, tax: Taxonomy, dice_weight: float = 0.5,
-                 class_weights: dict[str, float] | None = None):
+                 class_weights: dict[str, float] | None = None, lovasz_weight: float = 0.0,
+                 lovasz_stride: int = 2):
         super().__init__()
         base = torch.from_numpy(tax.allowed_matrix(labeled=[]))   # row 0 is per-sample
         self.register_buffer("base", base, persistent=False)
         self.dice_weight = dice_weight
+        # Lovasz-softmax optimises IoU directly (Berman et al., CVPR 2018). It helps small,
+        # thin classes most, because IoU punishes every missed pixel of a 2-pixel-wide duct.
+        self.lovasz_weight = lovasz_weight
+        self.lovasz_stride = lovasz_stride   # subsample pixels for speed (sorting is costly)
         # Per-pixel CE weight by mask value: a pixel labelled "artery" (or partial:artery)
         # counts e.g. 3x. Thin danger structures are a tiny share of pixels otherwise.
         w = torch.ones(256)
@@ -57,8 +62,44 @@ class PartialLabelLoss(torch.nn.Module):
             dice = self.partial_dice(logp.exp(), allowed, valid, labeled)
             out["dice"] = dice
             loss = loss + self.dice_weight * dice
+        if self.lovasz_weight > 0:
+            s = self.lovasz_stride
+            lov = self.partial_lovasz(logp.exp()[:, ::s, ::s], allowed[:, ::s, ::s],
+                                      valid[:, ::s, ::s], labeled)
+            out["lovasz"] = lov
+            loss = loss + self.lovasz_weight * lov
         out["loss"] = loss
         return out
+
+    @staticmethod
+    def partial_lovasz(prob, allowed, valid, labeled):
+        """Lovasz-softmax over pixels whose membership in class c is known (same rule as Dice).
+
+        For each class present in the batch: errors = |fg - p_c| on the known pixels, sorted
+        descending, weighted by the gradient of the Lovasz extension of the Jaccard loss.
+        """
+        exact = allowed.sum(-1, keepdim=True) == 1
+        pos = allowed & exact
+        known = (pos | ~allowed) & valid[..., None] & labeled[:, None, None, :]
+        C = prob.shape[-1]
+        losses = []
+        for c in range(1, C):                       # background is not a target structure
+            k = known[..., c]
+            fg = pos[..., c][k].float()
+            if fg.sum() == 0:
+                continue
+            err = (fg - prob[..., c][k]).abs()
+            err_sorted, order = torch.sort(err, descending=True)
+            fg_sorted = fg[order]
+            gts = fg_sorted.sum()
+            inter = gts - fg_sorted.cumsum(0)
+            union = gts + (1 - fg_sorted).cumsum(0)
+            jac = 1.0 - inter / union
+            grad = torch.cat([jac[:1], jac[1:] - jac[:-1]])
+            losses.append(torch.dot(err_sorted, grad))
+        if not losses:
+            return prob.sum() * 0
+        return torch.stack(losses).mean()
 
     @staticmethod
     def partial_dice(prob, allowed, valid, labeled):

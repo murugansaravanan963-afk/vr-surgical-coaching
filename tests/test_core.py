@@ -197,6 +197,68 @@ def test_val_picker_covers_rare_classes_without_starving_train():
         assert sum(counts[g].get(c, 0) for g in val) <= 0.5 * sum(x.get(c, 0) for x in counts.values())
 
 
+
+def test_lovasz_small_when_right_large_when_wrong_and_finite():
+    torch.manual_seed(0)
+    target = torch.randint(0, 4, (2, 16, 16))
+    labeled = torch.ones(2, C, dtype=torch.bool)
+    good = F.one_hot(target, C).permute(0, 3, 1, 2).float() * 20
+    bad = torch.roll(good, 1, dims=1).requires_grad_(True)
+    crit = PartialLabelLoss(TAX, dice_weight=0, lovasz_weight=1.0, lovasz_stride=1)
+    l_good = crit(good, target, labeled)["lovasz"]
+    l_bad = crit(bad, target, labeled)["lovasz"]
+    assert l_good < 0.01 and l_bad > 0.5
+    l_bad.backward()
+    assert torch.isfinite(bad.grad).all()
+
+
+def test_lovasz_does_not_punish_unlabeled_classes():
+    # Dataset labels only liver; predicting stomach on its "background" must cost nothing.
+    target = torch.zeros(1, 8, 8, dtype=torch.long)
+    target[0, :, :4] = N("liver")
+    labeled = torch.zeros(1, C, dtype=torch.bool)
+    labeled[0, N("liver")] = True
+    logits = torch.zeros(1, C, 8, 8)
+    logits[0, N("liver"), :, :4] = 20
+    logits[0, N("stomach"), :, 4:] = 20
+    crit = PartialLabelLoss(TAX, dice_weight=0, lovasz_weight=1.0, lovasz_stride=1)
+    assert crit(logits, target, labeled)["lovasz"] < 0.01
+
+
+def test_partial_miou_matches_partial_confusion():
+    from surgseg.evaluate import partial_miou
+    torch.manual_seed(1)
+    n, nd = 4000, 2
+    z = torch.randn(n, C)
+    t = torch.randint(0, 6, (n,))
+    d = torch.randint(0, nd, (n,))
+    lab = torch.zeros(n, C, dtype=torch.bool)
+    lab[:, :6] = True
+    lab[d == 1, 5] = False                       # dataset 1 does not label class 5
+    t[(d == 1) & (t == 5)] = 0
+    conf = PartialConfusion(C, nd)
+    for k in range(nd):
+        sel = d == k
+        conf.update(z[sel].argmax(1)[None], t[sel][None], lab[sel][:1], torch.tensor([k]))
+    ref = conf.summary(TAX.names, ["a", "b"])["mean_over_datasets"]
+    ours = partial_miou(z, t, d, lab, torch.zeros(C), nd)
+    assert abs(ref - ours) < 1e-6
+
+
+def test_class_bias_recovers_a_suppressed_class():
+    from surgseg.evaluate import fit_class_bias, partial_miou
+    torch.manual_seed(2)
+    n = 6000
+    t = torch.randint(0, 4, (n,))
+    z = F.one_hot(t, C).float() * 2 + torch.randn(n, C) * 0.8
+    z[:, 3] -= 1.5                               # the model under-predicts class 3
+    d = torch.zeros(n, dtype=torch.long)
+    lab = torch.zeros(n, C, dtype=torch.bool)
+    lab[:, :4] = True
+    bias, before, after = fit_class_bias((z.half(), t, d, lab), 1)
+    assert after > before + 0.02 and bias[3] > 0.5
+    assert abs(partial_miou(z, t, d, lab, bias, 1) - after) < 0.01
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

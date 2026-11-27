@@ -177,7 +177,9 @@ def main():
             teachers.append(t_model)
 
     criterion = PartialLabelLoss(tax, cfg["loss"].get("dice_weight", 0.5),
-                                 cfg["loss"].get("class_weights")).to(device)
+                                 cfg["loss"].get("class_weights"),
+                                 cfg["loss"].get("lovasz_weight", 0.0),
+                                 cfg["loss"].get("lovasz_stride", 2)).to(device)
     o = cfg["optim"]
     # No weight decay on norms/biases; optionally a lower LR for the pretrained encoder.
     enc_ids = {id(p) for p in (model.module if world > 1 else model).encoder.parameters()}

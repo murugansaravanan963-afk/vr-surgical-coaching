@@ -1,0 +1,70 @@
+# Fine-tune the deployed student (student_kd) for the WEAK classes: thin danger structures
+# (duct, artery, vein, ureter) plus pancreas, blood, connective tissue and seminal vesicles.
+#
+# What changes vs train_student_kd.yaml, and why:
+#   * starts from student_kd/best.pt (keeps everything it already knows)
+#   * larger crops (768 vs 640) and validation at long side 960: thin structures keep more pixels
+#   * Lovasz-softmax loss term: optimises IoU directly, helps small classes most
+#   * frames showing weak classes drawn 3x (was 2x); their pixels weighted 2x / 1.5x (was 1.5x)
+#   * best.pt chosen 50/50 on mean IoU and danger-class IoU
+#   * same LemonFM teacher, same datasets, same unlabeled frames (distillation continues)
+#
+#   bash scripts/linux/train.sh configs/finetune_thin.yaml
+#   bash scripts/linux/eval_export.sh runs/student_thin            # then compare with student_kd
+out_dir: ${SURGSEG_RUNS}/student_thin
+seed: 60
+iters: 15000
+val_every: 1500
+log_every: 50
+amp: bf16
+ema_decay: 0.999
+
+data:
+  root: ${SURGSEG_DATA}/processed
+  datasets:
+    dsad: 1.5
+    sisvse: 1.0
+    cholecseg8k: 1.0
+    endoscapes: 1.2
+    sarrarp50: 0.8
+    m2caiseg: 0.3
+    endovis18: 1.0
+    endoscapes_unl: 0.7
+    sarrarp50_unl: 0.5
+  synthetic_weight: 0.5
+  boost:
+    classes: [artery, vein, duct, ureter, vesicular_glands, pancreas]
+    factor: 3.0
+  crop: [768, 768]
+  batch_size: 8
+  workers: 6
+  eval_long_side: 960
+  eval_batch_size: 2
+
+model:
+  preset: surgenetxl-fpn
+  pretrained: true
+  init_ckpt: ${SURGSEG_RUNS}/student_kd/best.pt
+
+loss:
+  dice_weight: 0.5
+  lovasz_weight: 0.5
+  lovasz_stride: 2
+  class_weights: {artery: 2.0, vein: 2.0, duct: 2.0, ureter: 2.0,
+                  pancreas: 1.5, blood: 1.5, connective_tissue: 1.5, vesicular_glands: 1.5}
+
+distill:
+  teacher_ckpt: ${SURGSEG_RUNS}/teacher_lemonfm_s0/best.pt
+  weight: 1.0
+  T: 2.0
+
+select:
+  classes: [artery, vein, duct, ureter]
+  weight: 0.5
+
+optim:
+  lr: 6.0e-5
+  weight_decay: 0.05
+  warmup_iters: 500
+  encoder_lr_mult: 0.2
+  clip_grad: 1.0

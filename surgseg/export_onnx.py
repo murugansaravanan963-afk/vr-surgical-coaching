@@ -25,17 +25,27 @@ from surgseg.taxonomy import load_taxonomy
 
 
 class Deployable(torch.nn.Module):
-    def __init__(self, model, temperature: float):
+    def __init__(self, model, temperature: float, class_bias=None):
         super().__init__()
         self.model = model
         self.register_buffer("mean", torch.tensor(IMAGENET_MEAN).view(1, 3, 1, 1))
         self.register_buffer("std", torch.tensor(IMAGENET_STD).view(1, 3, 1, 1))
         self.inv_t = 1.0 / temperature
+        # Optional per-class logit offsets (fitted on val by evaluate --fit-class-bias).
+        # They only change the argmax "labels"; "probs" stay calibrated for the thresholds.
+        self.use_bias = class_bias is not None
+        if self.use_bias:
+            self.register_buffer("bias", torch.tensor(class_bias, dtype=torch.float32)
+                                 .view(1, -1, 1, 1))
 
     def forward(self, image):
-        logits = self.model((image - self.mean) / self.std) * self.inv_t
-        probs = torch.softmax(logits, dim=1)
-        conf, labels = probs.max(dim=1)
+        raw = self.model((image - self.mean) / self.std)
+        probs = torch.softmax(raw * self.inv_t, dim=1)
+        if self.use_bias:
+            labels = (raw + self.bias).argmax(dim=1)
+            conf = probs.gather(1, labels[:, None]).squeeze(1)
+        else:
+            conf, labels = probs.max(dim=1)
         return probs, labels.to(torch.uint8), conf
 
 
@@ -47,6 +57,9 @@ def main():
     ap.add_argument("--width", type=int, default=640)
     ap.add_argument("--temperature", type=float, default=None,
                     help="default: read from <ckpt>.eval_test.json if present, else 1.0")
+    ap.add_argument("--class-bias-from", default=None,
+                    help="eval json with a fitted 'class_bias' (evaluate --fit-class-bias); "
+                         "off by default")
     ap.add_argument("--static", action="store_true",
                     help="fixed input size (some engines/TensorRT builds prefer this)")
     ap.add_argument("--opset", type=int, default=17)
@@ -57,7 +70,11 @@ def main():
     if T is None:
         ev = Path(args.ckpt).with_suffix(".eval_test.json")
         T = json.loads(ev.read_text()).get("temperature", 1.0) if ev.exists() else 1.0
-    dep = Deployable(model, T).eval()
+    bias = None
+    if args.class_bias_from:
+        bias = json.loads(Path(args.class_bias_from).read_text())["class_bias"]
+        print(f"using class bias from {args.class_bias_from}")
+    dep = Deployable(model, T, bias).eval()
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     dummy = torch.rand(1, 3, args.height, args.width)
@@ -94,6 +111,7 @@ def main():
         "classes": [{"id": i, "name": n, "color": tax.colors[i].tolist()}
                     for i, n in enumerate(ck["class_names"])],
         "temperature": T,
+        "class_bias": bias,
         "train_step": ck["step"],
         "model_preset": ck["cfg"]["model"]["preset"],
     }
